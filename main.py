@@ -1,11 +1,12 @@
 import tkinter as tk
 from tkinter import ttk
 import numpy as np
+import json
 
-class MouseTrackerApp:
+class FlightControl:
     def __init__(self, root):
         self.root = root
-        self.root.title("Mouse Tracker")
+        self.root.title("Flight Control Application")
         self.root.geometry("520x650")
 
         self.label_coordinates = tk.Label(self.root, text="Click inside the frame.")
@@ -39,6 +40,13 @@ class MouseTrackerApp:
         self.show_table_button = tk.Button(self.root, text="Show Table", command=self.show_table)
         self.show_table_button.pack(side="right", padx=5, pady=10)
 
+
+        # Print json button
+        self.print_json = tk.Button(self.root, text="Print_json", command=self.create_json_package)
+        self.print_json.pack(side="right", padx=15, pady=10)
+
+
+
         # Create a new window for the table
         self.table_window = tk.Toplevel(self.root)
         self.table_window.title("Function Table")
@@ -56,6 +64,9 @@ class MouseTrackerApp:
 
         # Schedule the draw_grid method after the main loop starts
         self.root.after(1, self.draw_grid)
+
+        # Initialize the array for data to store in json package
+        self.jsondata = [[],[]]
 
     def on_canvas_resize(self, event):
         # Redraw the grid on canvas resize
@@ -163,10 +174,13 @@ class MouseTrackerApp:
             # Calculate C evenly spaced steps along the x-axis
             C = 100
             x_values_table = np.linspace(min(x_values), max(x_values), C)
+            self.jsondata[0] = x_values_table
 
             # Insert data into the table with values rounded to 3 decimal digits
+            self.jsondata[1].clear
             for x in x_values_table:
                 y = np.poly1d(coefficients)(x)
+                self.jsondata[1].append(y)
                 self.table.insert("", "end", values=(round(x, 3), round(y, 3)))
 
     def update_real_time_coordinates(self, event):
@@ -174,7 +188,18 @@ class MouseTrackerApp:
         coordinates_text = f"Mouse Coordinates: ({x}, {y})"
         self.label_real_time_coordinates.config(text=coordinates_text)
 
+
+    def create_json_package(self):
+        data = {
+            "x_values": self.jsondata[0].tolist(),
+            "y_values": self.jsondata[1]
+        }
+        json_string = json.dumps(data, indent=2)
+        print(json_string)
+
+ 
 if __name__ == "__main__":
+
     root = tk.Tk()
-    app = MouseTrackerApp(root)
+    app = FlightControl(root)
     root.mainloop()
