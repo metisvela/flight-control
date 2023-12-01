@@ -25,8 +25,16 @@ class FlightControl:
         # Bind left-click event to the canvas
         self.canvas.bind("<Button-1>", self.track_mouse)
 
+        # Flag to indicate if a point is being dragged
+        self.dragging = False
+        self.currently_dragged_point = None
+
+        # Bind left-button drag event to the canvas
+        self.canvas.bind("<B1-Motion>", self.drag_point)
+
         # Bind mouse motion to update real-time coordinates
         self.canvas.bind("<Motion>", self.update_real_time_coordinates)
+
 
         # Button to delete the last drawn point
         self.delete_button = tk.Button(self.root, text="Delete Last Point", command=self.delete_last_point)
@@ -93,22 +101,54 @@ class FlightControl:
     def track_mouse(self, event):
         x, y = event.x, event.y
 
-        # Draw a red point at the clicked coordinates
-        point_id = self.canvas.create_oval(x-2, y-2, x+2, y+2, fill="red", outline="red")
+        # Check if any point is close enough to being clicked
+        clicked_point = self.find_closest_point(x, y)
 
-        # Add the point to the lists
-        self.points.append((x, y))
-        self.drawn_points.append(point_id)
+        if clicked_point is not None:
+            self.dragging = True
+            self.currently_dragged_point = clicked_point
+        else:
+            # Draw a red point at the clicked coordinates
+            point_id = self.canvas.create_oval(x-2, y-2, x+2, y+2, fill="red", outline="red")
 
-        # Display the coordinates
-        coordinates_text = f"Mouse Clicked at ({x}, {y})"
-        self.label_coordinates.config(text=coordinates_text)
+            # Add the point to the lists
+            self.points.append((x, y))
+            self.drawn_points.append(point_id)
 
-        # Update the polynomial curve
-        self.update_polynomial_curve()
+            # Display the coordinates
+            coordinates_text = f"Mouse Clicked at ({x}, {y})"
+            self.label_coordinates.config(text=coordinates_text)
 
-        # Update the table
-        self.update_table()
+            # Update the polynomial curve
+            self.update_polynomial_curve()
+
+            # Update the table
+            self.update_table()
+        
+    def find_closest_point(self, x, y):
+        # Check if the mouse is close to any existing point
+        for point_id in self.drawn_points:
+            x_point, y_point, _, _ = self.canvas.coords(point_id)
+            distance = np.sqrt((x - x_point)**2 + (y - y_point)**2)
+            if distance < 5:
+                return point_id
+        return None
+
+    def drag_point(self, event):
+        if self.dragging and self.currently_dragged_point is not None:
+            # Update the coordinates of the dragged point
+            x, y = event.x, event.y
+            self.canvas.coords(self.currently_dragged_point, x-2, y-2, x+2, y+2)
+
+            # Update the coordinates in the points list
+            index = self.drawn_points.index(self.currently_dragged_point)
+            self.points[index] = (x, y)
+
+            # Update the polynomial curve
+            self.update_polynomial_curve()
+
+            # Update the table
+            self.update_table()
 
     def delete_last_point(self):
         # Delete the last drawn point
@@ -177,7 +217,7 @@ class FlightControl:
             self.jsondata[0] = x_values_table
 
             # Insert data into the table with values rounded to 3 decimal digits
-            self.jsondata[1].clear
+            self.jsondata[1].clear()
             for x in x_values_table:
                 y = np.poly1d(coefficients)(x)
                 self.jsondata[1].append(y)
@@ -197,9 +237,14 @@ class FlightControl:
         json_string = json.dumps(data, indent=2)
         print(json_string)
 
+    
  
 if __name__ == "__main__":
 
     root = tk.Tk()
     app = FlightControl(root)
     root.mainloop()
+
+
+    #TODO: modificare i punti dalla tabella
+    
