@@ -45,8 +45,8 @@ class FlightControl:
         self.reset_button.pack(side="right", padx=5, pady=10)
 
         # Show Table button
-        self.show_table_button = tk.Button(self.root, text="Show Table", command=self.show_table)
-        self.show_table_button.pack(side="right", padx=5, pady=10)
+        self.table_button = tk.Button(self.root, text="Show Table", command=self.show_hide_table)
+        self.table_button.pack(side="right", padx=5, pady=10)
 
 
         # Print json button
@@ -58,6 +58,7 @@ class FlightControl:
         # Create a new window for the table
         self.table_window = tk.Toplevel(self.root)
         self.table_window.title("Function Table")
+        self.table_window.withdraw()
 
         # Create a Treeview widget for the table
         self.table = ttk.Treeview(self.table_window, columns=("x", "y"), show="headings")
@@ -197,7 +198,14 @@ class FlightControl:
             curve_points = [(int(x), int(y)) for x, y in zip(x_curve, y_curve)]
             self.canvas.create_line(curve_points, tags="curve", fill="yellow")
 
-    def show_table(self):
+    def show_hide_table(self):
+        if not self.table_window.winfo_ismapped():
+            self.table_window.deiconify()
+            self.table_button.config(text="Hide Table")
+        else:
+            self.table_window.withdraw()
+            self.table_button.config(text="Show Table")
+        
         # Update the table
         self.update_table()
 
