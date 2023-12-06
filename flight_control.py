@@ -58,7 +58,7 @@ class FlightControl:
 
         # Create a new window for the table
         self.table_window = tk.Toplevel(self.root)
-        self.table_window.title("Function Table")
+        self.table_window.title("Drawn points")
         self.table_window.withdraw()
 
         # Create a Treeview widget for the table
@@ -190,8 +190,10 @@ class FlightControl:
 
             # Draw the polynomial curve in yellow
             x_min, x_max = min(x_values), max(x_values)
-            x_curve = np.linspace(x_min, x_max, 100)
+            x_curve = np.linspace(x_min, x_max, STEPS)
+            self.jsondata[0] = x_curve 
             y_curve = poly(x_curve)
+            self.jsondata[1] = y_curve
             curve_points = [(int(x), int(y)) for x, y in zip(x_curve, y_curve)]
             self.canvas.create_line(curve_points, tags="curve", fill=LINE_COLOR)
 
@@ -210,22 +212,10 @@ class FlightControl:
         # Clear previous table
         self.table.delete(*self.table.get_children())
 
-        if len(self.points) >= 2:
-            # Fit a polynomial curve with interpolation
-            x_values, y_values = zip(*self.points)
-            coefficients = np.polyfit(x_values, y_values, len(self.points) - 1, full=True)[0]
-            poly = np.poly1d(coefficients)
-
-            # Calculate C evenly spaced steps along the x-axis
-            x_values_table = np.linspace(min(x_values), max(x_values), STEPS)
-            self.jsondata[0] = x_values_table
-
-            # Insert data into the table with values rounded to 3 decimal digits
-            self.jsondata[1].clear()
-            for x in x_values_table:
-                y = np.poly1d(coefficients)(x)
-                self.jsondata[1].append(y)
-                self.table.insert("", "end", values=(round(x, 3), round(y, 3)))
+        # Insert data into the table with values rounded to 3 decimal digits
+        for x in self.drawn_points:
+            x_cord, y_cord, _, _ = self.canvas.coords(x)
+            self.table.insert("", "end", values=(x_cord + POINT_RADIUS, y_cord + POINT_RADIUS))
 
     def update_real_time_coordinates(self, event):
         x, y = event.x, event.y
@@ -237,7 +227,7 @@ class FlightControl:
         self.update_table
         data = {
             "x_values": self.jsondata[0].tolist(),
-            "y_values": self.jsondata[1]
+            "y_values": self.jsondata[1].tolist()
         }
         json_string = json.dumps(data, indent=2)
         print(json_string)
