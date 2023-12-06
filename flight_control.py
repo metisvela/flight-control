@@ -2,12 +2,14 @@ import tkinter as tk
 from tkinter import ttk
 import numpy as np
 import json
+from config import *
 
 class FlightControl:
     def __init__(self, root):
+
         self.root = root
         self.root.title("Flight Control Application")
-        self.root.geometry("520x650")
+        self.root.geometry(WINDOW_SIZE)
 
         self.label_coordinates = tk.Label(self.root, text="Click inside the frame.")
         self.label_coordinates.pack(pady=10)
@@ -16,7 +18,7 @@ class FlightControl:
         self.label_real_time_coordinates = tk.Label(self.root, text="Mouse Coordinates: (0, 0)")
         self.label_real_time_coordinates.pack(pady=10)
 
-        self.canvas = tk.Canvas(self.root, width=500, height=500, bg="black")
+        self.canvas = tk.Canvas(self.root, width=CANVA_WIDTH, height=CANVA_HEIGHT, bg=CANVA_BG)
         self.canvas.pack()
 
         self.points = []  # To store the clicked points
@@ -35,6 +37,8 @@ class FlightControl:
         # Bind mouse motion to update real-time coordinates
         self.canvas.bind("<Motion>", self.update_real_time_coordinates)
 
+        # Bind the canvas resizing event
+        self.canvas.bind("<Configure>", self.on_canvas_resize)
 
         # Button to delete the last drawn point
         self.delete_button = tk.Button(self.root, text="Delete Last Point", command=self.delete_last_point)
@@ -44,16 +48,13 @@ class FlightControl:
         self.reset_button = tk.Button(self.root, text="Reset", command=self.reset_canvas)
         self.reset_button.pack(side="right", padx=5, pady=10)
 
-        # Show Table button
+        # Show/Hide Table button
         self.table_button = tk.Button(self.root, text="Show Table", command=self.show_hide_table)
         self.table_button.pack(side="right", padx=5, pady=10)
-
 
         # Print json button
         self.print_json = tk.Button(self.root, text="Print_json", command=self.create_json_package)
         self.print_json.pack(side="right", padx=15, pady=10)
-
-
 
         # Create a new window for the table
         self.table_window = tk.Toplevel(self.root)
@@ -64,18 +65,14 @@ class FlightControl:
         self.table = ttk.Treeview(self.table_window, columns=("x", "y"), show="headings")
         self.table.heading("x", text="X Values")
         self.table.heading("y", text="Y Values")
-
-        # Pack the table
         self.table.pack()
-
-        # Bind the canvas resizing event
-        self.canvas.bind("<Configure>", self.on_canvas_resize)
 
         # Schedule the draw_grid method after the main loop starts
         self.root.after(1, self.draw_grid)
 
         # Initialize the array for data to store in json package
         self.jsondata = [[],[]]
+
 
     def on_canvas_resize(self, event):
         # Redraw the grid on canvas resize
@@ -90,14 +87,14 @@ class FlightControl:
         canvas_height = self.canvas.winfo_height()
 
         # Space between grid lines
-        space = 20
+        space = GRID_SPACE
 
-        # Draw grey-colored grid
+        # Draw grid
         for x in range(space, canvas_width - space, 20):
-            self.canvas.create_line(x, 0, x, canvas_height, fill="grey", width=1, tags="grid")
+            self.canvas.create_line(x, 0, x, canvas_height, fill=GRID_COLOR, width=1, tags="grid")
 
         for y in range(space, canvas_height - space, 20):
-            self.canvas.create_line(0, y, canvas_width, y, fill="grey", width=1, tags="grid")
+            self.canvas.create_line(0, y, canvas_width, y, fill=GRID_COLOR, width=1, tags="grid")
 
     def track_mouse(self, event):
         x, y = event.x, event.y
@@ -110,7 +107,7 @@ class FlightControl:
             self.currently_dragged_point = clicked_point
         else:
             # Draw a red point at the clicked coordinates
-            point_id = self.canvas.create_oval(x-2, y-2, x+2, y+2, fill="red", outline="red")
+            point_id = self.canvas.create_oval(x-POINT_RADIUS, y-POINT_RADIUS, x+POINT_RADIUS, y+POINT_RADIUS, fill=POINT_COLOR, outline=POINT_COLOR)
 
             # Add the point to the lists
             self.points.append((x, y))
@@ -131,7 +128,7 @@ class FlightControl:
         for point_id in self.drawn_points:
             x_point, y_point, _, _ = self.canvas.coords(point_id)
             distance = np.sqrt((x - x_point)**2 + (y - y_point)**2)
-            if distance < 5:
+            if distance < PICKABLE_RADIUS:
                 return point_id
         return None
 
@@ -139,7 +136,7 @@ class FlightControl:
         if self.dragging and self.currently_dragged_point is not None:
             # Update the coordinates of the dragged point
             x, y = event.x, event.y
-            self.canvas.coords(self.currently_dragged_point, x-2, y-2, x+2, y+2)
+            self.canvas.coords(self.currently_dragged_point, x-POINT_RADIUS, y-POINT_RADIUS, x+POINT_RADIUS, y+POINT_RADIUS)
 
             # Update the coordinates in the points list
             index = self.drawn_points.index(self.currently_dragged_point)
@@ -196,7 +193,7 @@ class FlightControl:
             x_curve = np.linspace(x_min, x_max, 100)
             y_curve = poly(x_curve)
             curve_points = [(int(x), int(y)) for x, y in zip(x_curve, y_curve)]
-            self.canvas.create_line(curve_points, tags="curve", fill="yellow")
+            self.canvas.create_line(curve_points, tags="curve", fill=LINE_COLOR)
 
     def show_hide_table(self):
         if not self.table_window.winfo_ismapped():
@@ -220,8 +217,7 @@ class FlightControl:
             poly = np.poly1d(coefficients)
 
             # Calculate C evenly spaced steps along the x-axis
-            C = 100
-            x_values_table = np.linspace(min(x_values), max(x_values), C)
+            x_values_table = np.linspace(min(x_values), max(x_values), STEPS)
             self.jsondata[0] = x_values_table
 
             # Insert data into the table with values rounded to 3 decimal digits
@@ -238,6 +234,7 @@ class FlightControl:
 
 
     def create_json_package(self):
+        self.update_table
         data = {
             "x_values": self.jsondata[0].tolist(),
             "y_values": self.jsondata[1]
