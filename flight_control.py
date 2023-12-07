@@ -2,6 +2,7 @@ import tkinter as tk
 from tkinter import ttk
 import numpy as np
 import json
+import pandas as pd
 from config import *
 
 class FlightControl:
@@ -12,11 +13,19 @@ class FlightControl:
         self.root.geometry(WINDOW_SIZE)
 
         self.label_coordinates = tk.Label(self.root, text="Click inside the frame.")
-        self.label_coordinates.pack(pady=10)
+        self.label_coordinates.pack(pady=0)
 
         # Label to display real-time mouse coordinates
         self.label_real_time_coordinates = tk.Label(self.root, text="Mouse Coordinates: (0, 0)")
-        self.label_real_time_coordinates.pack(pady=10)
+        self.label_real_time_coordinates.pack(pady=0)
+
+        # Entry widget for the textbox
+        self.textbox_entry = tk.Text(root, height=1, width=40, wrap='word', fg='grey')
+        self.textbox_entry.insert("1.0", 'Function name')
+        self.textbox_entry.bind('<FocusIn>', self.on_text_click)
+        self.textbox_entry.bind('<FocusOut>', self.on_focus_out)
+        self.textbox_entry.pack(pady=10)
+
 
         self.canvas = tk.Canvas(self.root, width=CANVA_WIDTH, height=CANVA_HEIGHT, bg=CANVA_BG)
         self.canvas.pack()
@@ -40,6 +49,8 @@ class FlightControl:
         # Bind the canvas resizing event
         self.canvas.bind("<Configure>", self.on_canvas_resize)
 
+        
+
         # Button to delete the last drawn point
         self.delete_button = tk.Button(self.root, text="Delete Last Point", command=self.delete_last_point)
         self.delete_button.pack(side="left", padx=5, pady=10)
@@ -56,6 +67,10 @@ class FlightControl:
         self.print_json = tk.Button(self.root, text="Print_json", command=self.create_json_package)
         self.print_json.pack(side="right", padx=15, pady=10)
 
+        # Save function button
+        self.save_function = tk.Button(self.root, text="Save Function", command=self.save_function)
+        self.save_function.pack(side="left", padx=15, pady=10)
+
         # Create a new window for the table
         self.table_window = tk.Toplevel(self.root)
         self.table_window.title("Drawn points")
@@ -66,6 +81,9 @@ class FlightControl:
         self.table.heading("x", text="X Values")
         self.table.heading("y", text="Y Values")
         self.table.pack()
+
+        # Bind the double-click event to edit the cell
+        self.table.bind("<Double-1>", self.edit_cell)
 
         # Schedule the draw_grid method after the main loop starts
         self.root.after(1, self.draw_grid)
@@ -217,6 +235,16 @@ class FlightControl:
             x_cord, y_cord, _, _ = self.canvas.coords(x)
             self.table.insert("", "end", values=(x_cord + POINT_RADIUS, y_cord + POINT_RADIUS))
 
+    
+
+    def edit_cell(self, event):
+        self.entry = tk.Entry(self.root, width = 30)
+        self.entry.bind("<Return>", self.update_cell)
+
+    def update_cell(self):
+        new_value = self.entry.get()
+        
+
     def update_real_time_coordinates(self, event):
         x, y = event.x, event.y
         coordinates_text = f"Mouse Coordinates: ({x}, {y})"
@@ -231,3 +259,23 @@ class FlightControl:
         }
         json_string = json.dumps(data, indent=2)
         print(json_string)
+
+    def save_function(self):
+
+        entry = tk.Entry(self.root, width=30)
+        #entry.pack()
+        
+
+        data = {'x': self.jsondata[0], 'y': self.jsondata[1]}
+        df = pd.DataFrame(data)
+        df.to_csv('./saved_functions/Prova.csv', index=False)
+
+    def on_text_click(self, event):
+        if self.textbox_entry.get("1.0", "end-1c") == 'Function name':
+            self.textbox_entry.delete("1.0", 'end')
+            self.textbox_entry.config(fg='black')  # Change text color to black
+
+    def on_focus_out(self, event):
+        if not self.textbox_entry.get("1.0", "end-1c"):
+            self.textbox_entry.insert("1.0", 'Function name')
+            self.textbox_entry.config(fg='grey')  # Change text color to grey
