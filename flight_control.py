@@ -1,5 +1,6 @@
 import tkinter as tk
 from tkinter import ttk
+from tkinter import messagebox
 import numpy as np
 import json
 import pandas as pd
@@ -23,7 +24,6 @@ class FlightControl:
         self.textbox_entry = tk.Text(root, height=1, width=40, wrap='word', fg='grey')
         self.textbox_entry.insert("1.0", 'Function name')
         self.textbox_entry.bind('<FocusIn>', self.on_text_click)
-        self.textbox_entry.bind('<FocusOut>', self.on_focus_out)
         self.textbox_entry.pack(pady=10)
 
 
@@ -83,7 +83,7 @@ class FlightControl:
         self.table.pack()
 
         # Bind the double-click event to edit the cell
-        self.table.bind("<Double-1>", self.edit_cell)
+        # self.table.bind("<Double-1>", self.edit_cell)
 
         # Schedule the draw_grid method after the main loop starts
         self.root.after(1, self.draw_grid)
@@ -236,15 +236,15 @@ class FlightControl:
             self.table.insert("", "end", values=(x_cord + POINT_RADIUS, y_cord + POINT_RADIUS))
 
     
-
+    """
     def edit_cell(self, event):
         self.entry = tk.Entry(self.root, width = 30)
         self.entry.bind("<Return>", self.update_cell)
 
     def update_cell(self):
         new_value = self.entry.get()
-        
-
+    """
+    
     def update_real_time_coordinates(self, event):
         x, y = event.x, event.y
         coordinates_text = f"Mouse Coordinates: ({x}, {y})"
@@ -261,21 +261,24 @@ class FlightControl:
         print(json_string)
 
     def save_function(self):
-
-        entry = tk.Entry(self.root, width=30)
-        #entry.pack()
+        input = self.textbox_entry.get("1.0", "end-1c")
+        if input == 'Function name' or input == '':
+            messagebox.showwarning("Attention!", "Insert a name for the function")
+        else:
+            data = {'x': self.jsondata[0], 'y': self.jsondata[1]}
+            df = pd.DataFrame(data)
+            df.to_csv(f'./saved_functions/{input}.csv', index=False)
+            messagebox.showinfo("", "Function saved correctly")
         
-
-        data = {'x': self.jsondata[0], 'y': self.jsondata[1]}
-        df = pd.DataFrame(data)
-        df.to_csv('./saved_functions/Prova.csv', index=False)
 
     def on_text_click(self, event):
         if self.textbox_entry.get("1.0", "end-1c") == 'Function name':
             self.textbox_entry.delete("1.0", 'end')
             self.textbox_entry.config(fg='black')  # Change text color to black
 
+    """
     def on_focus_out(self, event):
         if not self.textbox_entry.get("1.0", "end-1c"):
             self.textbox_entry.insert("1.0", 'Function name')
             self.textbox_entry.config(fg='grey')  # Change text color to grey
+    """
