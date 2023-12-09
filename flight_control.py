@@ -1,6 +1,7 @@
 import tkinter as tk
 from tkinter import ttk
 from tkinter import messagebox
+from tkinter import filedialog
 import numpy as np
 import json
 import pandas as pd
@@ -69,7 +70,11 @@ class FlightControl:
 
         # Save function button
         self.save_function = tk.Button(self.root, text="Save Function", command=self.save_function)
-        self.save_function.pack(side="left", padx=15, pady=10)
+        self.save_function.pack(side="left", padx=5, pady=10)
+
+        # Load function button
+        self.load_function = tk.Button(self.root, text="Load Function", command=self.load_function)
+        self.load_function.pack(side="left", padx=5, pady=10)
 
         # Create a new window for the table
         self.table_window = tk.Toplevel(self.root)
@@ -235,7 +240,6 @@ class FlightControl:
             x_cord, y_cord, _, _ = self.canvas.coords(x)
             self.table.insert("", "end", values=(x_cord + POINT_RADIUS, y_cord + POINT_RADIUS))
 
-    
     """
     def edit_cell(self, event):
         self.entry = tk.Entry(self.root, width = 30)
@@ -249,7 +253,6 @@ class FlightControl:
         x, y = event.x, event.y
         coordinates_text = f"Mouse Coordinates: ({x}, {y})"
         self.label_real_time_coordinates.config(text=coordinates_text)
-
 
     def create_json_package(self):
         self.update_table
@@ -265,7 +268,8 @@ class FlightControl:
         if input == 'Function name' or input == '':
             messagebox.showwarning("Attention!", "Insert a name for the function")
         else:
-            data = {'x': self.jsondata[0], 'y': self.jsondata[1]}
+            x,y = zip(*self.points)
+            data = {'x': x, 'y': y}
             df = pd.DataFrame(data)
             df.to_csv(f'./saved_functions/{input}.csv', index=False)
             messagebox.showinfo("", "Function saved correctly")
@@ -282,3 +286,25 @@ class FlightControl:
             self.textbox_entry.insert("1.0", 'Function name')
             self.textbox_entry.config(fg='grey')  # Change text color to grey
     """
+
+    def load_function(self):
+        file_path = filedialog.askopenfilename(initialdir="./saved_functions/", filetypes=[("CSV files", "*.csv")])    
+
+        if file_path:
+            data = pd.read_csv(file_path)
+            x_values = data["x"]
+            y_values = data["y"]
+
+            print(x_values)
+
+            self.reset_canvas()
+
+            for i in range(len(x_values)): 
+                point_id = self.canvas.create_oval(x_values[i]-POINT_RADIUS, y_values[i]-POINT_RADIUS, x_values[i]+POINT_RADIUS, y_values[i]+POINT_RADIUS, fill=POINT_COLOR, outline=POINT_COLOR)
+                self.points.append((x_values[i], y_values[i]))
+                self.drawn_points.append(point_id)
+
+            self.update_polynomial_curve()
+            self.update_table()
+
+
