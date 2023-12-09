@@ -2,6 +2,7 @@ import tkinter as tk
 from tkinter import ttk
 from tkinter import messagebox
 from tkinter import filedialog
+from os.path import basename
 import numpy as np
 import json
 import pandas as pd
@@ -291,11 +292,14 @@ class FlightControl:
         file_path = filedialog.askopenfilename(initialdir="./saved_functions/", filetypes=[("CSV files", "*.csv")])    
 
         if file_path:
+            file_name = basename(file_path)
+            self.textbox_entry.delete("1.0", 'end')
+            self.textbox_entry.config(fg='black')
+            self.textbox_entry.insert("1.0", file_name)
+            self.textbox_entry.delete("end-5c", "end")
             data = pd.read_csv(file_path)
             x_values = data["x"]
             y_values = data["y"]
-
-            print(x_values)
 
             self.reset_canvas()
 
